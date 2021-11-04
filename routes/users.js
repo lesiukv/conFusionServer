@@ -1,23 +1,26 @@
-var express = require("express");
-var router = express.Router();
-var passport = require("passport");
-var authenticate = require("../authenticate.js");
+const express = require("express");
+const router = express.Router();
+const passport = require("passport");
+const authenticate = require("../authenticate.js");
 const bodyParser = require("body-parser");
-var User = require("../models/users");
+const User = require("../models/users");
+const cors = require("./cors");
 
 /* GET users listing. */
-router.route("/").get(authenticate.verifyAdmin, async (req, res, next) => {
-  try {
-    const users = await User.find();
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.json(users);
-  } catch (error) {
-    next(error);
-  }
-});
+router
+  .route("/")
+  .get(cors.corsWithOptions, authenticate.verifyAdmin, async (req, res, next) => {
+    try {
+      const users = await User.find();
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json(users);
+    } catch (error) {
+      next(error);
+    }
+  });
 
-router.post("/signup", (req, res, next) => {
+router.post("/signup", cors.corsWithOptions, (req, res, next) => {
   User.register(
     new User({ username: req.body.username }),
     req.body.password,
@@ -47,7 +50,7 @@ router.post("/signup", (req, res, next) => {
   );
 });
 
-router.post("/login", passport.authenticate("local"), (req, res) => {
+router.post("/login", cors.corsWithOptions, passport.authenticate("local"), (req, res) => {
   var token = authenticate.getToken({ _id: req.user._id });
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");

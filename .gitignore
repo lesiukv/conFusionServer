@@ -3,3 +3,4 @@ sessions
 bin/89544046_confusionserver.cert
 bin/89544046_confusionserver.key
 public/images
+config.js
