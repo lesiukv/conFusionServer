@@ -6,17 +6,15 @@ const bodyParser = require("body-parser");
 var User = require("../models/users");
 
 /* GET users listing. */
-router.route("/").get(authenticate.verifyAdmin, function (req, res, next) {
-  User.find()
-    .then(
-      (users) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(users);
-      },
-      (err) => next(err)
-    )
-    .catch((err) => next(err));
+router.route("/").get(authenticate.verifyAdmin, async (req, res, next) => {
+  try {
+    const users = await User.find();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/signup", (req, res, next) => {
