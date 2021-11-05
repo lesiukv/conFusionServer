@@ -9,16 +9,20 @@ const cors = require("./cors");
 /* GET users listing. */
 router
   .route("/")
-  .get(cors.corsWithOptions, authenticate.verifyAdmin, async (req, res, next) => {
-    try {
-      const users = await User.find();
-      res.statusCode = 200;
-      res.setHeader("Content-Type", "application/json");
-      res.json(users);
-    } catch (error) {
-      next(error);
+  .get(
+    cors.corsWithOptions,
+    authenticate.verifyAdmin,
+    async (req, res, next) => {
+      try {
+        const users = await User.find();
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.json(users);
+      } catch (error) {
+        next(error);
+      }
     }
-  });
+  );
 
 router.post("/signup", cors.corsWithOptions, (req, res, next) => {
   User.register(
@@ -50,12 +54,17 @@ router.post("/signup", cors.corsWithOptions, (req, res, next) => {
   );
 });
 
-router.post("/login", cors.corsWithOptions, passport.authenticate("local"), (req, res) => {
-  var token = authenticate.getToken({ _id: req.user._id });
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "application/json");
-  res.json({ token, status: "Logged In", success: true });
-});
+router.post(
+  "/login",
+  cors.corsWithOptions,
+  passport.authenticate("local"),
+  (req, res) => {
+    var token = authenticate.getToken({ _id: req.user._id });
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.json({ token, status: "Logged In", success: true });
+  }
+);
 
 router.get("/logout", (req, res, next) => {
   if (req.session) {
@@ -68,5 +77,18 @@ router.get("/logout", (req, res, next) => {
     next(err);
   }
 });
+
+routet.get(
+  "/facebook/token",
+  passport.authenticate("facebook-token"),
+  (req, res, next) => {
+    if (req.user) {
+      var token = authenticate.getToken({ _id: req.user._id });
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json({ success: true, token: token, status: "logged in" });
+    }
+  }
+);
 
 module.exports = router;
