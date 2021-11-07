@@ -3,6 +3,7 @@ const Favorites = require("../models/favorites.js");
 const bodyParser = require("body-parser");
 const authenticate = require("../authenticate");
 const favoriteRouter = express.Router();
+const cors = require("./cors");
 
 favoriteRouter.use(bodyParser.json());
 
@@ -34,24 +35,34 @@ favoriteRouter
     try {
       const dishes = req.body;
       const isFavoritesExists = await Favorites.findOne({ user: req.user._id });
-      console.log(dishes)
+      console.log(dishes);
       if (isFavoritesExists?.user.toString() == req.user._id.toString()) {
         Favorites.findOne({ user: req.user._id }).then((favorite) => {
           dishes.forEach((dish) => {
             favorite.dishes.push(dish);
           });
-          favorite.save().then(() => {
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.json(favorite);
+          favorite.save().then((favorite) => {
+            favorite
+              .populate("dishes")
+              .populate("user")
+              .then((favorite) => {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(favorite);
+              });
           });
         });
       } else {
         Favorites.create({ user: req.user._id, dishes: dishes }).then(
           (favorite) => {
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.json(favorite);
+            favorite
+              .populate("dishes")
+              .populate("user")
+              .then((favorite) => {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(favorite);
+              });
           }
         );
       }
@@ -62,6 +73,30 @@ favoriteRouter
 
 favoriteRouter
   .route("/:dishId")
+  .options(cors.corsWithOptions)
+  .get(cors.cors, authenticate.verifyUser, async (req, res, next) => {
+    try {
+      Favorites.findOne({ user: req.user._id }).then((favorite) => {
+        if (!favorite) {
+          res.statusCode = 200;
+          res.setHeader("Content-Type", "application/json");
+          return res.json({ exists: false, favorite: favorite });
+        } else {
+          if (favorite.dishes.indexOf(req.params.dishId) < 0) {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            return res.json({ exists: false, favorite: false });
+          } else {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            return res.json({ exists: true, favorite: false });
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  })
   .post(authenticate.verifyUser, async (req, res, next) => {
     try {
       const { dishId } = req.params;
@@ -71,17 +106,27 @@ favoriteRouter
         Favorites.findOne({ user: req.user._id }).then((favorite) => {
           favorite.dishes.push(dishId);
           favorite.save().then(() => {
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.json(favorite);
+            Favorites.findById(favorite)
+              .populate("user")
+              .populate("dishes")
+              .then((favorite) => {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(favorite);
+              });
           });
         });
       } else {
         Favorites.create({ user: req.user._id, dishes: [dishId] }).then(
           (favorite) => {
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.json(favorite);
+            favorite
+              .populate("dishes")
+              .populate("user")
+              .then((favorite) => {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/json");
+                res.json(favorite);
+              });
           }
         );
       }
@@ -97,10 +142,15 @@ favoriteRouter
         if (index > -1) {
           favorite.dishes.splice(index, 1);
         }
-        favorite.save().then(() => {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.json(favorite);
+        favorite.save().then((favorite) => {
+          favorite
+            .populate("dishes")
+            .populate("user")
+            .then((favorite) => {
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.json(favorite);
+            });
         });
       });
     } catch (error) {
